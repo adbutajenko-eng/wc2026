@@ -1909,17 +1909,43 @@ function calcStreak(player) {
 
 // ─── PLAYOFF DATA ────────────────────────────────────────
 const PO_ROUNDS = [
-  { key:'r16',   label:'⚔️ 1/8 ФИНАЛА',        dates:'29 июня – 7 июля', count:16,
+  { key:'r16',   label:'⚔️ 1/16 ФИНАЛА',        dates:'29 июня – 7 июля', count:16,
     matches: Array.from({length:16},(_,i)=>({id:`r16_${i+1}`, label:`Матч ${i+1}`})) },
-  { key:'qf',    label:'⚡ ЧЕТВЕРТЬФИНАЛЫ',     dates:'9–12 июля',        count:8,
-    matches: Array.from({length:8}, (_,i)=>({id:`qf_${i+1}`,  label:`ЧФ ${i+1}`})) },
-  { key:'sf',    label:'🔥 ПОЛУФИНАЛЫ',          dates:'14–15 июля',       count:4,
-    matches: Array.from({length:4}, (_,i)=>({id:`sf_${i+1}`,  label:`ПФ ${i+1}`})) },
+  { key:'qf',    label:'⚡ 1/8 ФИНАЛА',         dates:'9–12 июля',        count:8,
+    matches: Array.from({length:8}, (_,i)=>({id:`qf_${i+1}`,  label:`1/8 ${i+1}`})) },
+  { key:'sf',    label:'🥊 1/4 ФИНАЛА',          dates:'14–15 июля',       count:4,
+    matches: Array.from({length:4}, (_,i)=>({id:`sf_${i+1}`,  label:`ЧФ ${i+1}`})) },
+  { key:'sf2',   label:'🔥 ПОЛУФИНАЛЫ',         dates:'17–18 июля',       count:2,
+    matches: Array.from({length:2}, (_,i)=>({id:`sf2_${i+1}`, label:`ПФ ${i+1}`})) },
   { key:'third', label:'🥉 МАТЧ ЗА 3-Е МЕСТО',  dates:'18 июля',          count:1,
     matches: [{id:'third_1', label:'ПФ проигравшие'}] },
   { key:'final', label:'🏆 ФИНАЛ',              dates:'19 июля 2026',     count:1,
     matches: [{id:'final_1', label:'Финал'}] },
 ];
+
+// Карта переходов победителей/проигравших между раундами плей-офф
+const PO_PROGRESSION = (function() {
+  const map = {};
+  // r16 (16 матчей) -> qf (8 матчей: 1/8 финала)
+  for (let i = 1; i <= 16; i++) {
+    const qfIndex = Math.ceil(i / 2);
+    map['r16_' + i] = { nextId: 'qf_' + qfIndex, slot: (i % 2 === 1) ? 'home' : 'away' };
+  }
+  // qf (8 матчей) -> sf (4 матча: 1/4 финала)
+  for (let i = 1; i <= 8; i++) {
+    const sfIndex = Math.ceil(i / 2);
+    map['qf_' + i] = { nextId: 'sf_' + sfIndex, slot: (i % 2 === 1) ? 'home' : 'away' };
+  }
+  // sf (4 матча) -> sf2 (2 матча: полуфиналы)
+  for (let i = 1; i <= 4; i++) {
+    const sf2Index = Math.ceil(i / 2);
+    map['sf_' + i] = { nextId: 'sf2_' + sf2Index, slot: (i % 2 === 1) ? 'home' : 'away' };
+  }
+  // sf2 (2 матча) -> final, проигравшие -> матч за 3-е место
+  map['sf2_1'] = { nextId: 'final_1', slot: 'home', loserTo: 'third_1', loserSlot: 'home' };
+  map['sf2_2'] = { nextId: 'final_1', slot: 'away', loserTo: 'third_1', loserSlot: 'away' };
+  return map;
+})();
 
 let PO_DATA = {}; // {matchId: {home, away, scoreH, scoreA, preds:{player:"1-0"}}}
 
